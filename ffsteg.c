@@ -30,30 +30,29 @@ typedef unsigned short ushort;
 int main(int argc, char **argv)
 {
 	if(argc < 2) help(argv);
+	FILE *i = stdin, *o = stdout;
+	char hdr[8], rwid[4], rhei[4];
+	char rr[2], rg[2], rb[2], ra[2];
+	ushort r, g, b, a;
 	if(*argv[1] == 'e')
 	{
 		if(argc < 3) help(argv);
-		FILE *in  = stdin;
-		FILE *out = stdout;
 		FILE *msg = fopen(argv[2], "r");
-		if(argc > 3) in  = fopen(argv[3], "r");
-		if(argc > 4) out = fopen(argv[4], "w");
-		char hdr[8], rwid[4], rhei[4];
-		char rr[2], rg[2], rb[2], ra[2];
-		fread(hdr, 1, 8, in);
-		fwrite(hdr, 1, 8, out);
-		fread(rwid, 1, 4, in);
-		fwrite(rwid, 1, 4, out);
-		fread(rhei, 1, 4, in);
-		fwrite(rhei, 1, 4, out);
+		if(argc > 3) i = fopen(argv[3], "r");
+		if(argc > 4) o = fopen(argv[4], "w");
+		fread(hdr, 1, 8, i);
+		fwrite(hdr, 1, 8, o);
+		fread(rwid, 1, 4, i);
+		fwrite(rwid, 1, 4, o);
+		fread(rhei, 1, 4, i);
+		fwrite(rhei, 1, 4, o);
 		uint sz = a2i32(rwid) * a2i32(rhei);
-		ushort r, g, b, a;
-		for(uint i = 0; i < sz; i++)
+		for(uint j = 0; j < sz; j++)
 		{
-			fread(rr, 1, 2, in);
-			fread(rg, 1, 2, in);
-			fread(rb, 1, 2, in);
-			fread(ra, 1, 2, in);
+			fread(rr, 1, 2, i);
+			fread(rg, 1, 2, i);
+			fread(rb, 1, 2, i);
+			fread(ra, 1, 2, i);
 			char m = fgetc(msg);
 			r = (a2i16(rr) & 0xfffc) | (m        & 3);
 			g = (a2i16(rg) & 0xfffc) | ((m >> 2) & 3);
@@ -63,28 +62,20 @@ int main(int argc, char **argv)
 			i2a16(g, rg);
 			i2a16(b, rb);
 			i2a16(a, ra);
-			fwrite(rr, 1, 2, out);
-			fwrite(rg, 1, 2, out);
-			fwrite(rb, 1, 2, out);
-			fwrite(ra, 1, 2, out);
+			fwrite(rr, 1, 2, o);
+			fwrite(rg, 1, 2, o);
+			fwrite(rb, 1, 2, o);
+			fwrite(ra, 1, 2, o);
 		}
-		fclose(in);
-		fclose(out);
-		return 0;
 	}
 	else if(*argv[1] == 'd')
 	{
-		FILE *i = stdin;
-		FILE *o = stdout;
 		if(argc > 2) i = fopen(argv[2], "r");
 		if(argc > 3) o = fopen(argv[3], "w");
-		char hdr[8], rwid[4], rhei[4];
-		char rr[2], rg[2], rb[2], ra[2];
 		fread(hdr, 1, 8, i);
 		fread(rwid, 1, 4, i);
 		fread(rhei, 1, 4, i);
 		uint sz = a2i32(rwid) * a2i32(rhei);
-		ushort r, g, b, a;
 		for(uint j = 0; j < sz; j++)
 		{
 			fread(rr, 1, 2, i);
@@ -97,9 +88,9 @@ int main(int argc, char **argv)
 			a = a2i16(ra) & 3;
 			fputc(r | g << 2 | b << 4 | a << 6, o);
 		}
-		fclose(o);
-		fclose(i);
-		return 0;
 	}
 	else help(argv);
+	fclose(o);
+	fclose(i);
+	return 0;
 }
