@@ -4,25 +4,18 @@
 typedef unsigned int uint;
 typedef unsigned short ushort;
 
-//╔════════╤═════════════════════════════════════════════════════════╗
-//║ Bytes  │ Description                                             ║
-//╠════════╪═════════════════════════════════════════════════════════╣
-//║ 8      │ "farbfeld" magic value                                  ║
-//╟────────┼─────────────────────────────────────────────────────────╢
-//║ 4      │ 32-Bit BE unsigned integer (width)                      ║
-//╟────────┼─────────────────────────────────────────────────────────╢
-//║ 4      │ 32-Bit BE unsigned integer (height)                     ║
-//╟────────┼─────────────────────────────────────────────────────────╢
-//║ [2222] │ 4⋅16-Bit BE unsigned integers [RGBA] / pixel, row-major ║
-//╚════════╧═════════════════════════════════════════════════════════╝
-
-typedef struct
-{
-	ushort r;
-	ushort g;
-	ushort b;
-	ushort a;
-} pixel;
+//╔══════╤══════════════════════════════════════════════════════════╗
+//║Bytes │Description                                               ║
+//╠══════╪══════════════════════════════════════════════════════════╣
+//║8     │"farbfeld" magic value                                    ║
+//╟──────┼──────────────────────────────────────────────────────────╢
+//║4     │32-Bit ̶B̶E LE unsigned integer (width)                     ║
+//╟──────┼──────────────────────────────────────────────────────────╢
+//║4     │32-Bit ̶B̶E LE unsigned integer (height)                    ║
+//╟──────┼──────────────────────────────────────────────────────────╢
+//║[2222]│4⋅16-Bit ̶B̶E LE unsigned integers [RGBA] / pixel, row-major║
+//╚══════╧══════════════════════════════════════════════════════════╝
+//about that BE/LE: https://tinyurl.com/xxscklss
 
 #define a2i32(x) ((x[0] << 24) | (x[1] << 16) | (x[2] << 8) | x[3])
 #define a2i16(x) ((x[0] << 8) | x[1])
@@ -53,31 +46,23 @@ int main(int argc, char **argv)
 		fwrite(rwid, 1, 4, out);
 		fread(rhei, 1, 4, in);
 		fwrite(rhei, 1, 4, out);
-		uint wid = a2i32(rwid), hei = a2i32(rhei);
-		for(uint i = 0; i < wid * hei; i++)
+		uint sz = a2i32(rwid) * a2i32(rhei);
+		ushort r, g, b, a;
+		for(uint i = 0; i < sz; i++)
 		{
-			pixel p;
 			fread(rr, 1, 2, in);
 			fread(rg, 1, 2, in);
 			fread(rb, 1, 2, in);
 			fread(ra, 1, 2, in);
-			p.r = a2i16(rr);
-			p.g = a2i16(rg);
-			p.b = a2i16(rb);
-			p.a = a2i16(ra);
 			char m = fgetc(msg);
-			p.r &= 0xfffc;
-			p.b &= 0xfffc;
-			p.g &= 0xfffc;
-			p.a &= 0xfffc;
-			p.r |= (m        & 3);
-			p.g |= ((m >> 2) & 3);
-			p.b |= ((m >> 4) & 3);
-			p.a |= ((m >> 6)    );
-			i2a16(p.r, rr);
-			i2a16(p.g, rg);
-			i2a16(p.b, rb);
-			i2a16(p.a, ra);
+			r = (a2i16(rr) & 0xfffc) | (m        & 3);
+			g = (a2i16(rg) & 0xfffc) | ((m >> 2) & 3);
+			b = (a2i16(rb) & 0xfffc) | ((m >> 4) & 3);
+			a = (a2i16(ra) & 0xfffc) | ((m >> 6)    );
+			i2a16(r, rr);
+			i2a16(g, rg);
+			i2a16(b, rb);
+			i2a16(a, ra);
 			fwrite(rr, 1, 2, out);
 			fwrite(rg, 1, 2, out);
 			fwrite(rb, 1, 2, out);
@@ -98,28 +83,19 @@ int main(int argc, char **argv)
 		fread(hdr, 1, 8, i);
 		fread(rwid, 1, 4, i);
 		fread(rhei, 1, 4, i);
-		uint wid = a2i32(rwid), hei = a2i32(rhei);
-		for(uint j = 0; j < wid * hei; j++)
+		uint sz = a2i32(rwid) * a2i32(rhei);
+		ushort r, g, b, a;
+		for(uint j = 0; j < sz; j++)
 		{
-			pixel p;
 			fread(rr, 1, 2, i);
 			fread(rg, 1, 2, i);
 			fread(rb, 1, 2, i);
 			fread(ra, 1, 2, i);
-			p.r = a2i16(rr);
-			p.g = a2i16(rg);
-			p.b = a2i16(rb);
-			p.a = a2i16(ra);
-			char m = 0;
-			p.r &= 3;
-			p.b &= 3;
-			p.g &= 3;
-			p.a &= 3;
-			m |= (p.r     );
-			m |= (p.g << 2);
-			m |= (p.b << 4);
-			m |= (p.a << 6);
-			fputc(m, o);
+			r = a2i16(rr) & 3;
+			g = a2i16(rg) & 3;
+			b = a2i16(rb) & 3;
+			a = a2i16(ra) & 3;
+			fputc(r | g << 2 | b << 4 | a << 6, o);
 		}
 		fclose(o);
 		fclose(i);
